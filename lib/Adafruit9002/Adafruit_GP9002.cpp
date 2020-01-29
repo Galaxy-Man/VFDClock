@@ -205,19 +205,19 @@ void Adafruit_GP9002::slowSPIwrite(uint8_t d) {
  }
 }
 
-inline void Adafruit_GP9002::fastSPIwrite(uint8_t d) {
-  if (hwSPI) {
-    SPDR = d;
-    while(!(SPSR & _BV(SPIF)));
-    return;
-  }
-  for(uint8_t bit = 0x1; bit != 0x00; bit <<= 1) {
-    *clkport &= ~clkpinmask;
-    if(d & bit) *mosiport |=  mosipinmask;
-    else        *mosiport &= ~mosipinmask;
-    *clkport |=  clkpinmask;
-  }
-}
+// inline void Adafruit_GP9002::fastSPIwrite(uint8_t d) {
+//   if (hwSPI) {
+//     SPDR = d;
+//     while(!(SPSR & _BV(SPIF)));
+//     return;
+//   }
+//   for(uint8_t bit = 0x1; bit != 0x00; bit <<= 1) {
+//     *clkport &= ~clkpinmask;
+//     if(d & bit) *mosiport |=  mosipinmask;
+//     else        *mosiport &= ~mosipinmask;
+//     *clkport |=  clkpinmask;
+//   }
+// }
 
 uint8_t Adafruit_GP9002::slowSPIread(void) {
  uint8_t reply = 0;
@@ -231,22 +231,22 @@ uint8_t Adafruit_GP9002::slowSPIread(void) {
  return reply;
 }
 
-inline uint8_t Adafruit_GP9002::fastSPIread(void) {
- uint8_t reply = 0;
- for (uint8_t i=0; i<8; i++) {
-   *clkport &= ~clkpinmask;
+// inline uint8_t Adafruit_GP9002::fastSPIread(void) {
+//  uint8_t reply = 0;
+//  for (uint8_t i=0; i<8; i++) {
+//    *clkport &= ~clkpinmask;
    
-   *clkport |=  clkpinmask;
-   if ((*misopin) & misopinmask)
-     reply |= _BV(i);
- }
- return reply;
-}
+//    *clkport |=  clkpinmask;
+//    if ((*misopin) & misopinmask)
+//      reply |= _BV(i);
+//  }
+//  return reply;
+// }
 
 void Adafruit_GP9002::command(uint8_t d) { 
   *dcport |= dcpinmask;
   *csport &= ~cspinmask;
-  fastSPIwrite(d);
+  slowSPIwrite(d);
   *csport |= cspinmask;
   delayMicroseconds(1); // should be 400ns actually
 }
@@ -255,7 +255,7 @@ inline void Adafruit_GP9002::dataWrite(uint8_t d) {
   *dcport &= ~dcpinmask;
   *csport &= ~cspinmask;
 
-  fastSPIwrite(d);
+  slowSPIwrite(d);
 
   *csport |= cspinmask;
   delayMicroseconds(1); // should be 600ns actually
@@ -266,7 +266,7 @@ inline uint8_t Adafruit_GP9002::dataRead() {
   *dcport &= ~dcpinmask;
   *csport &= ~cspinmask;
 
-  r = fastSPIread();
+  r = slowSPIread();
 
   *csport |= cspinmask;
   delayMicroseconds(1); 
