@@ -1,5 +1,12 @@
-#include <avr/pgmspace.h>
+#if (defined(__AVR__))
+#include <avr\pgmspace.h>
 #include <util/delay.h>
+#else
+#include <pgmspace.h>
+#define _delay_ms(ms) delayMicroseconds((ms) * 1000)
+#endif //since i'm working on an ESP
+
+
 #include <stdlib.h>
 
 #include "Adafruit_GFX.h"
@@ -36,11 +43,11 @@ void Adafruit_GP9002::begin(void) {
     pinMode(_miso, INPUT);
     pinMode(_sclk, OUTPUT);
     
-    clkport     = portOutputRegister(digitalPinToPort(_sclk));
+    clkport     = (volatile uint8_t*)portOutputRegister(digitalPinToPort(_sclk));
     clkpinmask  = digitalPinToBitMask(_sclk);
-    mosiport    = portOutputRegister(digitalPinToPort(_mosi));
+    mosiport    = (volatile uint8_t*)portOutputRegister(digitalPinToPort(_mosi));
     mosipinmask = digitalPinToBitMask(_mosi);
-    misopin = portInputRegister(digitalPinToPort(_miso));
+    misopin = (volatile uint8_t*)portInputRegister(digitalPinToPort(_miso));
     misopinmask = digitalPinToBitMask(_miso);
   } else {
     SPI.begin();
@@ -48,9 +55,9 @@ void Adafruit_GP9002::begin(void) {
     SPI.setBitOrder(MSBFIRST);
     SPI.setDataMode(SPI_MODE0);
   }
-  csport    = portOutputRegister(digitalPinToPort(_cs));
+  csport    = (volatile uint8_t*)portOutputRegister(digitalPinToPort(_cs));
   cspinmask = digitalPinToBitMask(_cs);
-  dcport    = portOutputRegister(digitalPinToPort(_dc));
+  dcport    = (volatile uint8_t*)portOutputRegister(digitalPinToPort(_dc));
   dcpinmask = digitalPinToBitMask(_dc);
 
   command(GP9002_DISPLAY);
