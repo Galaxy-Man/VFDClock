@@ -1,3 +1,6 @@
+#ifndef TIMECOP_H
+#define TIMECOP_H
+
 #include <WiFiUdp.h>
 #include <time.h>
 #include <WiFi.h>
@@ -24,3 +27,5 @@ void printTime(time_t &t);
 
 void getDeviceTime(time_t &t);
 void renderTime(time_t &t, char*);
+
+#endif

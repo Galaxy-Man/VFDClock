@@ -1,19 +1,23 @@
 #include <Arduino.h>
 #include <definitions.h>
-#include <Weatherman.h>
 #include <WiFi.h>
 #include <time.h>
 #include <TimeCop.h>
 #include <SPI.h>
 #include <renderer.h>
-#include "Ticker.h" 
+#include "Ticker.h"
+#include <Weatherman.h>
 
 time_t currentTime;
 
+ Ticker NTPChecker(NTPUpdate, 1000*60*5, MILLIS);
+Ticker WeatherChecker(weatherUpdate, 1000*60*15, MILLIS);
+
+weatherInfo currentWeather;
+bool weatherValid = false;
 
 
 void setup() {
-    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
     
     #ifdef DEBUGMODE 
     Serial.begin(115200);
@@ -34,11 +38,19 @@ void setup() {
     }
 
     initDisp();
+
     while(!getNTPTime(currentTime)){
         displayUnableToConnectMsg();
         delay(5000);
     }
 
+    if(getNewWeather(currentWeather)){
+        weatherValid = true;
+    }
+
+    NTPChecker.start();
+    WeatherChecker.start();
+    dispBrightness(4);
 }
 
 
@@ -53,16 +65,29 @@ void dispWeather(WeatherInfo w){
 
 
 void loop() {    
-    for(int i = 0; i < 600; i++){
+    for(int i = 0; i < 300; i++){
         getDeviceTime(currentTime);
-        //printTime(currentTime);
-        displayTime(currentTime);
-        delay(100);
+        if(weatherValid){
+            displayTime(currentTime, currentWeather);
+        }
+        else{
+            displayTime(currentTime);
+        }
+        
+        delay(200);
+        if(second(currentTime) == 0 && minute(currentTime)%15 == 0){
+            invertDisp();
+        }
     }
-    refreshDisplay();
     getNTPTime(currentTime);
-    //weatherInfo w = getNewWeather();
-    //dispWeather(w);
+
     
 }
 
+void NTPUpdate(){
+    getNTPTime(currentTime);
+}
+
+void weatherUpdate(){
+    getNewWeather(currentWeather);
+}

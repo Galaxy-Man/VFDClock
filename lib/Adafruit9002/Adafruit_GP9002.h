@@ -60,7 +60,7 @@ class Adafruit_GP9002 : public Adafruit_GFX {
   void dataWrite(uint8_t *d, int len);
   uint8_t dataRead(void);
   void setBrightness(uint8_t val);
-  void invert(boolean i);
+  void invert();
   void blitWithoutReading();
   void clearBuffer();
 
@@ -69,7 +69,7 @@ class Adafruit_GP9002 : public Adafruit_GFX {
   void clearDisplay(void);
 
   void drawPixel(int16_t x, int16_t y, uint16_t color);
-  void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+
 
  private:
   int8_t _miso, _mosi, _sclk, _dc, _cs;
@@ -78,6 +78,7 @@ class Adafruit_GP9002 : public Adafruit_GFX {
   uint8_t mosipinmask, misopinmask, clkpinmask, cspinmask, dcpinmask;
 
   boolean hwSPI;
+  boolean inverted = false;
 
   void spiwrite(uint8_t c);
 };

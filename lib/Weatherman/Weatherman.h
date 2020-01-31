@@ -1,3 +1,8 @@
+#ifndef WEATHERMAN_H
+#define WEATHERMAN_H
+#include <WString.h>
+#include <time.h>
+
 #define DEBUGMODE
 
 #ifndef DEBUGMODE
@@ -8,9 +13,9 @@
 #define INFO_PRINT(X) Serial.print("INFO: ");Serial.println(X);
 #endif
 
-#include <WString.h>
-#include <time.h>
-#include <secrets.h>
+
+//#include <secrets.h>
+
 
 
 typedef struct weatherInfo{
@@ -22,6 +27,8 @@ typedef struct weatherInfo{
     String conditions;
 }WeatherInfo;
 
-weatherInfo getNewWeather();
+
+bool getNewWeather(weatherInfo &w);
 weatherInfo processWeather(String);
 
+#endif

@@ -4,14 +4,15 @@
 #include <ArduinoJson.h>
 #include <Arduino.h>
 #include <WString.h>
-
+#include <secrets.h>
 
 StaticJsonDocument<1000> jsonObj;
 
 HTTPClient http;
 
-weatherInfo getNewWeather(){
-    weatherInfo w;
+
+ bool getNewWeather(weatherInfo &w){
+    
     http.begin(weatherEndpoint + weatherKey);
     int httpCode = http.GET();
 
@@ -21,10 +22,11 @@ weatherInfo getNewWeather(){
         w = processWeather(payload);
     }
     else {
-        INFO_PRINT("Error on HTTP request");
+        INFO_PRINT("Error on HTTP request for weather");
+        return(false);
     }
     http.end();
-    return(w);
+    return(true);
 }
 
 weatherInfo processWeather(String payload){

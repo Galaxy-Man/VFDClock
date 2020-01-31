@@ -6,7 +6,7 @@
 #define _delay_ms(ms) delayMicroseconds((ms) * 1000)
 #endif //since i'm working on an ESP
 
-#define SLOWDOWN 0
+#define SLOWDOWN 1
 #include <stdlib.h>
 
 #include "Adafruit_GFX.h"
@@ -81,56 +81,6 @@ void Adafruit_GP9002::begin(void) {
 
 
 
-// updated high speed drawing!
-void Adafruit_GP9002::drawFastVLine(int16_t x, int16_t orig_y, int16_t h, uint16_t color) {
-  if ((x < 0) || (x >= width()) || (orig_y >= height())) return;
-  //if ((orig_y+h) >= height()) 
-  //  h = height() - orig_y -1;
-
-  //drawLine(x, orig_y, x, orig_y+h, color); return;
-
-  while (h) {
-    if ((h >= 8) && ((orig_y) % 8 == 0)) 
-      break;
-    drawPixel(x, orig_y, color);
-    orig_y++;
-    h--;
-  }
-
-  if (h >= 8) {
-      // calculate addr
-      uint16_t addr = 0;
-      addr = x*8;
-      uint16_t y = orig_y+h-8;
-      y = 63 - y;
-      addr += y/8;
-
-      Serial.println(addr, HEX);
-      command(GP9002_ADDRINCR);
-      command(GP9002_ADDRL);
-      dataWrite(addr & 0xFF);
-      command(GP9002_ADDRH);
-      dataWrite(addr >> 8);
-      command(GP9002_DATAWRITE);
-
-      while (h >= 8) {
-	// draw 8 pixels at once!
-	if (color) 
-	  dataWrite(0xFF);
-	else 
-	  dataWrite(0x00);
-	h -= 8;
-	orig_y += 8;
-      }
-  }
-  while (h+1) {
-    drawPixel(x, orig_y-1, color);
-    orig_y++;
-    h--;
-  }
-
-}
-
 // the most basic function, set a single pixel
 void Adafruit_GP9002::drawPixel(int16_t x, int16_t y, uint16_t color) {
   if ((x < 0) || (x >= width()) || (y < 0) || (y >= height()))
@@ -148,14 +98,11 @@ void Adafruit_GP9002::drawPixel(int16_t x, int16_t y, uint16_t color) {
     p |= (1 << (7-(y % 8)));
   else
     p &= ~(1 << (7-(y % 8)));
-  bitmap[addr] = p;
+
+    bitmap[addr] = p;
 }
 
 void Adafruit_GP9002::blitWithoutReading(){
-  int x = 0;
-  int y = 0;
-
-  uint16_t addr = 0;
   command(GP9002_ADDRINCR);
   command(GP9002_ADDRL);
   dataWrite(0x00);
@@ -163,49 +110,28 @@ void Adafruit_GP9002::blitWithoutReading(){
   dataWrite(0x00);
   command(GP9002_DATAWRITE);
   dataWrite(bitmap, (imageHeight*imageWidth/8));
-
 }
 
 inline void Adafruit_GP9002::dataWrite(uint8_t *d, int len) {
-  *dcport &= ~dcpinmask;
-  *csport &= ~cspinmask;
-  for (int i=0; i<len; i++){
-      slowSPIwrite(d[i]);
-      delayMicroseconds(SLOWDOWN); // should be 600ns actually
-  }
-
-  *csport |= cspinmask;
-  delayMicroseconds(SLOWDOWN); // should be 600ns actually
+    *dcport &= ~dcpinmask;
+    *csport &= ~cspinmask;
+    for (int i=0; i<len; i++){
+        if(inverted){
+            slowSPIwrite(~d[i]);
+        }
+        else{
+            slowSPIwrite(d[i]);
+        }
+        delayMicroseconds(SLOWDOWN); // should be 600ns actually
+    }
+    *csport |= cspinmask;
+    delayMicroseconds(SLOWDOWN); // should be 600ns actually
 }
   
 
-void Adafruit_GP9002::invert(boolean i) {
-  // This is kinda clumsy but it does work
-  // fill the opposite screen with all on pixels so we can invert!
-  uint16_t addr = 0x400;
-
-  command(GP9002_ADDRINCR);
-  command(GP9002_ADDRL);
-  dataWrite(addr & 0xFF);
-  command(GP9002_ADDRH);
-  dataWrite(addr >> 8);
-  command(GP9002_DATAWRITE);
-
-  if (i) {
-    while (addr < 0x0800) {
-      dataWrite(0xFF);
-      addr++;
-    }
-    command(GP9002_XOR);
-  } else {
-    while (addr < 0x0800) {
-      dataWrite(0x00);
-      addr++;
-    }
-    command(GP9002_OR);
-  }
-  command(GP9002_ADDRHELD);
-
+void Adafruit_GP9002::invert(void) {
+    inverted = !inverted;
+    blitWithoutReading();
 }
 
 void Adafruit_GP9002::slowSPIwrite(uint8_t d) {
@@ -222,19 +148,6 @@ void Adafruit_GP9002::slowSPIwrite(uint8_t d) {
  }
 }
 
-// inline void Adafruit_GP9002::fastSPIwrite(uint8_t d) {
-//   if (hwSPI) {
-//     SPDR = d;
-//     while(!(SPSR & _BV(SPIF)));
-//     return;
-//   }
-//   for(uint8_t bit = 0x1; bit != 0x00; bit <<= 1) {
-//     *clkport &= ~clkpinmask;
-//     if(d & bit) *mosiport |=  mosipinmask;
-//     else        *mosiport &= ~mosipinmask;
-//     *clkport |=  clkpinmask;
-//   }
-// }
 
 uint8_t Adafruit_GP9002::slowSPIread(void) {
  uint8_t reply = 0;
@@ -249,17 +162,6 @@ uint8_t Adafruit_GP9002::slowSPIread(void) {
  return reply;
 }
 
-// inline uint8_t Adafruit_GP9002::fastSPIread(void) {
-//  uint8_t reply = 0;
-//  for (uint8_t i=0; i<8; i++) {
-//    *clkport &= ~clkpinmask;
-   
-//    *clkport |=  clkpinmask;
-//    if ((*misopin) & misopinmask)
-//      reply |= _BV(i);
-//  }
-//  return reply;
-// }
 
 void Adafruit_GP9002::command(uint8_t d) { 
   *dcport |= dcpinmask;
@@ -298,7 +200,52 @@ inline uint8_t Adafruit_GP9002::dataRead() {
 
 
 void Adafruit_GP9002::setBrightness(uint8_t val) {
-  
+    command(GP9002_BRIGHT);
+    switch(val){
+        case 0:
+            dataWrite(0xFF);
+            break;
+        
+        case 1:
+            dataWrite(0xFF);
+            break;
+        
+        case 2:
+            dataWrite(0xFF);
+            break;
+        
+        case 3: 
+            dataWrite(0x2A);
+            break;
+        
+        case 4:
+            dataWrite(0x24);
+            break;
+
+        case 5: 
+            dataWrite(0x1E);
+            break;
+        
+        case 6:
+            dataWrite(0x18);
+            break;
+
+        case 7: 
+            dataWrite(0x12);
+            break;
+        
+        case 8:
+            dataWrite(0x0C);
+            break;
+        
+        case 9: 
+            dataWrite(0x06);
+            break;
+        
+        case 10:
+            dataWrite(0x00);
+            break;
+    }
 }
 
 // clear everything
