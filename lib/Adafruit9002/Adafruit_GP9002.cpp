@@ -6,12 +6,13 @@
 #define _delay_ms(ms) delayMicroseconds((ms) * 1000)
 #endif //since i'm working on an ESP
 
-
+#define SLOWDOWN 0
 #include <stdlib.h>
 
 #include "Adafruit_GFX.h"
 #include "Adafruit_GP9002.h"
 #include "glcdfont.c"
+#include "img.h" 
 
 Adafruit_GP9002::Adafruit_GP9002(int8_t SCLK, int8_t MISO, int8_t MOSI, 
     int8_t CS, int8_t DC) : Adafruit_GFX(128, 64) {
@@ -50,10 +51,10 @@ void Adafruit_GP9002::begin(void) {
     misopin = (volatile uint8_t*)portInputRegister(digitalPinToPort(_miso));
     misopinmask = digitalPinToBitMask(_miso);
   } else {
-    SPI.begin();
-    SPI.setClockDivider(SPI_CLOCK_DIV4);
-    SPI.setBitOrder(MSBFIRST);
-    SPI.setDataMode(SPI_MODE0);
+    // SPI.begin();
+    // SPI.setClockDivider(SPI_CLOCK_DIV4);
+    // SPI.setBitOrder(MSBFIRST);
+    // SPI.setDataMode(SPI_MODE0);
   }
   csport    = (volatile uint8_t*)portOutputRegister(digitalPinToPort(_cs));
   cspinmask = digitalPinToBitMask(_cs);
@@ -134,34 +135,48 @@ void Adafruit_GP9002::drawFastVLine(int16_t x, int16_t orig_y, int16_t h, uint16
 void Adafruit_GP9002::drawPixel(int16_t x, int16_t y, uint16_t color) {
   if ((x < 0) || (x >= width()) || (y < 0) || (y >= height()))
     return;
-
-  uint8_t p;
-  
-  // calculate addr
+    
   uint16_t addr = 0;
   addr = x*8;
   y = 63 - y;
   addr += y/8;
 
-  command(GP9002_ADDRHELD);
-  command(GP9002_ADDRL);
-  dataWrite(addr & 0xFF);
-  command(GP9002_ADDRH);
-  dataWrite(addr >> 8);
-  command(GP9002_DATAREAD);
-  dataRead();
-  p = dataRead();
-
-  //Serial.println(p, HEX);
+  uint8_t p;
+  p = bitmap[addr];
 
   if (color)
     p |= (1 << (7-(y % 8)));
   else
     p &= ~(1 << (7-(y % 8)));
-  command(GP9002_DATAWRITE);
-  dataWrite(p);
+  bitmap[addr] = p;
 }
 
+void Adafruit_GP9002::blitWithoutReading(){
+  int x = 0;
+  int y = 0;
+
+  uint16_t addr = 0;
+  command(GP9002_ADDRINCR);
+  command(GP9002_ADDRL);
+  dataWrite(0x00);
+  command(GP9002_ADDRH);
+  dataWrite(0x00);
+  command(GP9002_DATAWRITE);
+  dataWrite(bitmap, (imageHeight*imageWidth/8));
+
+}
+
+inline void Adafruit_GP9002::dataWrite(uint8_t *d, int len) {
+  *dcport &= ~dcpinmask;
+  *csport &= ~cspinmask;
+  for (int i=0; i<len; i++){
+      slowSPIwrite(d[i]);
+      delayMicroseconds(SLOWDOWN); // should be 600ns actually
+  }
+
+  *csport |= cspinmask;
+  delayMicroseconds(SLOWDOWN); // should be 600ns actually
+}
   
 
 void Adafruit_GP9002::invert(boolean i) {
@@ -201,7 +216,9 @@ void Adafruit_GP9002::slowSPIwrite(uint8_t d) {
    } else {
      digitalWrite(_mosi, LOW);
    }
+   delayMicroseconds(SLOWDOWN);
    digitalWrite(_sclk, HIGH);
+   
  }
 }
 
@@ -225,6 +242,7 @@ uint8_t Adafruit_GP9002::slowSPIread(void) {
    digitalWrite(_sclk, LOW);
 
    digitalWrite(_sclk, HIGH);
+   delayMicroseconds(10*SLOWDOWN);
    if (digitalRead(_miso)) 
      reply |= _BV(i);
  }
@@ -246,33 +264,38 @@ uint8_t Adafruit_GP9002::slowSPIread(void) {
 void Adafruit_GP9002::command(uint8_t d) { 
   *dcport |= dcpinmask;
   *csport &= ~cspinmask;
+
   slowSPIwrite(d);
   *csport |= cspinmask;
-  delayMicroseconds(1); // should be 400ns actually
+  delayMicroseconds(SLOWDOWN); // should be 400ns actually
 }
 
 inline void Adafruit_GP9002::dataWrite(uint8_t d) {
   *dcport &= ~dcpinmask;
   *csport &= ~cspinmask;
-
+  delayMicroseconds(SLOWDOWN);
   slowSPIwrite(d);
 
   *csport |= cspinmask;
-  delayMicroseconds(1); // should be 600ns actually
+  delayMicroseconds(SLOWDOWN); // should be 600ns actually
 }
 inline uint8_t Adafruit_GP9002::dataRead() {
   uint8_t r;
 
   *dcport &= ~dcpinmask;
-  *csport &= ~cspinmask;
-
+  *csport &= ~cspinmask; 
+  delayMicroseconds(SLOWDOWN);
   r = slowSPIread();
 
   *csport |= cspinmask;
-  delayMicroseconds(1); 
+  delayMicroseconds(SLOWDOWN);
   
  return r;
 }
+
+
+
+
 
 void Adafruit_GP9002::setBrightness(uint8_t val) {
   
@@ -281,8 +304,12 @@ void Adafruit_GP9002::setBrightness(uint8_t val) {
 // clear everything
 void Adafruit_GP9002::clearDisplay(void) {
   command(GP9002_CLEARSCREEN);
+}
 
-  delay(1);
+void Adafruit_GP9002::clearBuffer(void){
+    for(int i = 0; i < sizeof(bitmap); i++){
+      bitmap[i] = 0x00;
+  }
 }
 
 void Adafruit_GP9002::displayOff(void) {
@@ -292,4 +319,9 @@ void Adafruit_GP9002::displayOn(void) {
    command(GP9002_DISPLAY1ON);
 }
 
+
+
+
+#define imageWidth 128
+#define imageHeight 64
 

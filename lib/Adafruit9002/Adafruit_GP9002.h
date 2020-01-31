@@ -6,7 +6,7 @@
 #else
  #include "WProgram.h"
 #endif
-#include <SPI.h>
+
 
 #include "Adafruit_GFX.h"
 
@@ -57,9 +57,12 @@ class Adafruit_GP9002 : public Adafruit_GFX {
 
   void command(uint8_t c);
   void dataWrite(uint8_t c);
+  void dataWrite(uint8_t *d, int len);
   uint8_t dataRead(void);
   void setBrightness(uint8_t val);
   void invert(boolean i);
+  void blitWithoutReading();
+  void clearBuffer();
 
   void displayOn();
   void displayOff();
