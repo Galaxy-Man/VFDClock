@@ -2,6 +2,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_GP9002.h>
 #include <time.h>
+#include <assets.h>
 
 #include "RobotoMono_Light6pt7b.h"
 #include "RobotoMono_Bold17pt7b.h"
@@ -43,7 +44,7 @@ void displayTime(time_t &t){
 void displayTime(time_t &t, weatherInfo &w){
     d.clearBuffer();
     char timeMsg[15];
-    char temp[20];
+    char wBuffer[20];
     
     d.setFont(&RobotoMono_Bold17pt7b);
     d.setCursor(3,24);
@@ -61,16 +62,43 @@ void displayTime(time_t &t, weatherInfo &w){
   
     d.fillRect(0, 61 - second(t), 2, second(t), 1);
 
-    d.drawBitmap(90, 0, thermometer, 8, 12, 1);
-    sprintf(temp, "%02dC", w.currentTemp);
-    d.setCursor(100,10);
     d.setFont(&RobotoMono_Light6pt7b);
-    d.println(temp);
-    d.blitWithoutReading(); 
 
+
+
+
+
+    d.drawBitmap(76, 1, temp, 12, 12, 1);
+    sprintf(wBuffer, "%02dC", w.currentTemp);
+    d.setCursor(90,11);
+    d.println(wBuffer);
+
+
+    d.drawBitmap(76, 14, tmax, 12, 12, 1);
+    d.setCursor(90, 24);
+    sprintf(wBuffer, "%02dC", w.tempMax);
+    d.println(wBuffer);
+
+    d.drawBitmap(76, 27, tmin, 12, 12, 1);
+    d.setCursor(90, 37);
+    sprintf(wBuffer, "%02dC", w.tempMin);
+    d.println(wBuffer);
+
+    d.drawBitmap(76, 40, sunrise, 12, 12, 1);
+    d.setCursor(90, 50);
+    sprintf(wBuffer, "%02d:%02d", hour(w.sunrise), minute(w.sunrise));
+    d.println(wBuffer);
+
+    d.drawBitmap(76, 53, sunset, 12, 12, 1);
+    d.setCursor(90, 62);
+    sprintf(wBuffer, "%02d:%02d", hour(w.sunset), minute(w.sunset));
+    d.println(wBuffer);
 
     d.blitWithoutReading();
 }
+
+
+
 
 void displayUnableToConnectMsg(){
     d.clearBuffer();
@@ -103,7 +131,8 @@ void dispBrightness(int v){
     d.setBrightness(v);
 }
 
-void invertDisp(){
-    d.invert();
+void invertDisp(bool i){
+    if(i){d.inverted = true;}
+    else{d.inverted = false;}
 }
 

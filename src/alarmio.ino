@@ -50,7 +50,7 @@ void setup() {
 
     NTPChecker.start();
     WeatherChecker.start();
-    dispBrightness(4);
+    dispBrightness(3);
 }
 
 
@@ -75,9 +75,13 @@ void loop() {
         }
         
         delay(200);
-        if(second(currentTime) == 0 && minute(currentTime)%15 == 0){
-            invertDisp();
+        if(minute(currentTime)%30 < 15){
+            invertDisp(true);
         }
+        else{
+            invertDisp(false);
+        }
+
     }
     getNTPTime(currentTime);
 

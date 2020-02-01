@@ -69,7 +69,7 @@ class Adafruit_GP9002 : public Adafruit_GFX {
   void clearDisplay(void);
 
   void drawPixel(int16_t x, int16_t y, uint16_t color);
-
+  boolean inverted = false;
 
  private:
   int8_t _miso, _mosi, _sclk, _dc, _cs;
@@ -78,7 +78,7 @@ class Adafruit_GP9002 : public Adafruit_GFX {
   uint8_t mosipinmask, misopinmask, clkpinmask, cspinmask, dcpinmask;
 
   boolean hwSPI;
-  boolean inverted = false;
+
 
   void spiwrite(uint8_t c);
 };

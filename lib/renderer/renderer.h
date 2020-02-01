@@ -1,6 +1,9 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#include <time.h>
+#include <Weatherman.h>
+
 
 #define MISOPIN 19
 #define MOSIPIN 18
@@ -8,9 +11,6 @@
 #define CSPIN 4
 #define DCPIN 5
 
-#include <time.h>
-#include <Weatherman.h>
-#include <assets.h>
 
 #define DEBUGMODE
 
@@ -29,6 +29,6 @@ void displayUnableToConnectMsg();
 void refreshDisplay();
 void displayRebooting();
 void dispBrightness(int v);
-void invertDisp();
+void invertDisp(bool);
 
 #endif
