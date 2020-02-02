@@ -6,7 +6,7 @@
 #else
  #include "WProgram.h"
 #endif
-#include <SPI.h>
+
 
 #include "Adafruit_GFX.h"
 
@@ -57,16 +57,19 @@ class Adafruit_GP9002 : public Adafruit_GFX {
 
   void command(uint8_t c);
   void dataWrite(uint8_t c);
+  void dataWrite(uint8_t *d, int len);
   uint8_t dataRead(void);
   void setBrightness(uint8_t val);
-  void invert(uint8_t i);
+  void invert();
+  void blitWithoutReading();
+  void clearBuffer();
 
   void displayOn();
   void displayOff();
   void clearDisplay(void);
 
   void drawPixel(int16_t x, int16_t y, uint16_t color);
-  void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+  boolean inverted = false;
 
  private:
   int8_t _miso, _mosi, _sclk, _dc, _cs;
@@ -75,6 +78,7 @@ class Adafruit_GP9002 : public Adafruit_GFX {
   uint8_t mosipinmask, misopinmask, clkpinmask, cspinmask, dcpinmask;
 
   boolean hwSPI;
+
 
   void spiwrite(uint8_t c);
 };

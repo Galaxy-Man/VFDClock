@@ -77,7 +77,7 @@ void sendNTPpacket(IPAddress &address)
 
 void printTime(time_t &t){
     char s[200];
-    DEBUG_PRINT("ABOUT TO FORMAT PRINT");
+    //DEBUG_PRINT("ABOUT TO FORMAT PRINT");
     sprintf(s, "The time is: %02d:%02d:%02d on %02d/%02d/%04d", hour(t), minute(t), second(t), day(t), month(t), year(t));
     INFO_PRINT(s);
 }
@@ -88,4 +88,8 @@ void getDeviceTime(time_t &t){
     timeval read;
     gettimeofday(&read, tz);
     t = time_t(read.tv_sec);
+}
+
+void renderTime(time_t &t, char* s){
+    sprintf(s, "The time is: %02d:%02d:%02d on %02d/%02d/%04d", hour(t), minute(t), second(t), day(t), month(t), year(t));
 }

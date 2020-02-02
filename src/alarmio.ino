@@ -1,29 +1,56 @@
 #include <Arduino.h>
 #include <definitions.h>
-#include <Weatherman.h>
 #include <WiFi.h>
 #include <time.h>
 #include <TimeCop.h>
 #include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_GP9002.h>
+#include <renderer.h>
+#include "Ticker.h"
+#include <Weatherman.h>
 
+time_t currentTime;
 
+ Ticker NTPChecker(NTPUpdate, 1000*60*5, MILLIS);
+Ticker WeatherChecker(weatherUpdate, 1000*60*15, MILLIS);
+
+weatherInfo currentWeather;
+bool weatherValid = false;
 
 
 void setup() {
-    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
-
+    
     #ifdef DEBUGMODE 
     Serial.begin(115200);
     #endif
     
     WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
+    int start = millis();
+    while (WiFi.status() != WL_CONNECTED && millis()-start < 5000) {
         delay(1000);
         DEBUG_PRINT("Connecting to WiFi..");
     }
-    INFO_PRINT("Connected to the WiFi network");
+    if(WiFi.status() == WL_CONNECTED){
+        INFO_PRINT("Connected to the WiFi network");
+    }
+    else{
+        displayRebooting();
+        ESP.restart();
+    }
+
+    initDisp();
+
+    while(!getNTPTime(currentTime)){
+        displayUnableToConnectMsg();
+        delay(5000);
+    }
+
+    if(getNewWeather(currentWeather)){
+        weatherValid = true;
+    }
+
+    NTPChecker.start();
+    WeatherChecker.start();
+    dispBrightness(3);
 }
 
 
@@ -35,23 +62,36 @@ void dispWeather(WeatherInfo w){
     printf("Sunset : %02d:%02d\n", hour(w.sunset) , minute(w.sunset));
 }
 
-time_t currentTime;
 
-void loop() {
-    if(getNTPTime(currentTime)){
-        printTime(currentTime);
-    }
-    else{
-        DEBUG_PRINT("unable to get network time");
-        printTime(currentTime);
-    }
-    for(int i = 0; i < 240; i++){
+
+void loop() {    
+    for(int i = 0; i < 300; i++){
         getDeviceTime(currentTime);
-        printTime(currentTime);
-        delay(1000);
+        if(weatherValid){
+            displayTime(currentTime, currentWeather);
+        }
+        else{
+            displayTime(currentTime);
+        }
+        
+        delay(200);
+        if(minute(currentTime)%30 < 15){
+            invertDisp(true);
+        }
+        else{
+            invertDisp(false);
+        }
+
     }
-    //weatherInfo w = getNewWeather();
-    //dispWeather(w);
+    getNTPTime(currentTime);
+
     
 }
 
+void NTPUpdate(){
+    getNTPTime(currentTime);
+}
+
+void weatherUpdate(){
+    getNewWeather(currentWeather);
+}
