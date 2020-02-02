@@ -4,5 +4,5 @@
 .vscode/launch.json
 .vscode/ipch
 lib/AdafruitGFX
-include/definitions.h
+include/secrets.h
 lib/Weatherman/secrets.h

@@ -3,6 +3,7 @@
 #include <Adafruit_GP9002.h>
 #include <time.h>
 #include <assets.h>
+#include <SPI.h>
 
 #include "RobotoMono_Light6pt7b.h"
 #include "RobotoMono_Bold17pt7b.h"
@@ -69,29 +70,29 @@ void displayTime(time_t &t, weatherInfo &w){
 
 
     d.drawBitmap(76, 1, temp, 12, 12, 1);
-    sprintf(wBuffer, "%02dC", w.currentTemp);
+    sprintf(wBuffer, "%02dC", w.tNow);
     d.setCursor(90,11);
     d.println(wBuffer);
 
 
     d.drawBitmap(76, 14, tmax, 12, 12, 1);
     d.setCursor(90, 24);
-    sprintf(wBuffer, "%02dC", w.tempMax);
+    sprintf(wBuffer, "%02dC", w.tMax);
     d.println(wBuffer);
 
     d.drawBitmap(76, 27, tmin, 12, 12, 1);
     d.setCursor(90, 37);
-    sprintf(wBuffer, "%02dC", w.tempMin);
+    sprintf(wBuffer, "%02dC", w.tMin);
     d.println(wBuffer);
 
     d.drawBitmap(76, 40, sunrise, 12, 12, 1);
     d.setCursor(90, 50);
-    sprintf(wBuffer, "%02d:%02d", hour(w.sunrise), minute(w.sunrise));
+    sprintf(wBuffer, "%02d:%02d", hour(w.srise), minute(w.srise));
     d.println(wBuffer);
 
     d.drawBitmap(76, 53, sunset, 12, 12, 1);
     d.setCursor(90, 62);
-    sprintf(wBuffer, "%02d:%02d", hour(w.sunset), minute(w.sunset));
+    sprintf(wBuffer, "%02d:%02d", hour(w.sset), minute(w.sset));
     d.println(wBuffer);
 
     d.blitWithoutReading();
@@ -100,11 +101,13 @@ void displayTime(time_t &t, weatherInfo &w){
 
 
 
-void displayUnableToConnectMsg(){
+void displayUnableToConnectMsg(int i){
+    char s[60];
     d.clearBuffer();
     d.setCursor(3,10);
     d.setFont(&RobotoMono_Light6pt7b);
-    d.println("Unable to get NTP time, trying again in 5");
+    sprintf(s, "Unable to get NTP time, trying again in %d", i);
+    d.println(s);
     d.blitWithoutReading();
 }
 

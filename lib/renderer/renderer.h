@@ -25,7 +25,7 @@
 void initDisp();
 void displayTime(time_t &t);
 void displayTime(time_t &t, weatherInfo &w);
-void displayUnableToConnectMsg();
+void displayUnableToConnectMsg(int);
 void refreshDisplay();
 void displayRebooting();
 void dispBrightness(int v);
