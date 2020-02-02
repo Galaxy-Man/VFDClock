@@ -1,3 +1,8 @@
+Modified GP9002 driver by timecop97 :P supports ESP32 and simplex SPI (uses a framebuffer rather than read-before-write.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 This is a library for our Monochrome 128x64 Graphical VFD
 
   Pick one up today in the adafruit shop!
