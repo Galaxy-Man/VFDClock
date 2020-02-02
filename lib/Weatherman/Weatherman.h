@@ -19,16 +19,17 @@
 
 
 typedef struct weatherInfo{
-    int currentTemp;
-    int tempMin;
-    int tempMax;
-    time_t sunrise;
-    time_t sunset;
+    int tNow;
+    int tMin;
+    int tMax;
+    time_t srise;
+    time_t sset;
     String conditions;
 }WeatherInfo;
 
 
 bool getNewWeather(weatherInfo &w);
 weatherInfo processWeather(String);
+void dispWeather(WeatherInfo w);
 
 #endif

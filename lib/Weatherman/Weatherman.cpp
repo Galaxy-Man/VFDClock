@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <WString.h>
 #include <secrets.h>
+#include <Strings.h>
 
 StaticJsonDocument<1000> jsonObj;
 
@@ -34,7 +35,7 @@ weatherInfo processWeather(String payload){
     DEBUG_PRINT(payload.length());
     DeserializationError error = deserializeJson(jsonObj, payload);
     if(error){
-        INFO_PRINT("weather data payload deserialisation error");
+        INFO_PRINT(DSRLZTN_ERR);
     }
     else{
         float temp = jsonObj["main"]["temp"];
@@ -47,11 +48,20 @@ weatherInfo processWeather(String payload){
         tempMax -=273.15;
         tempMin -=273.15;
 
-        w.currentTemp = int(temp);
-        w.tempMax = int(tempMax);
-        w.tempMin = int(tempMin);
-        w.sunrise = time_t(sunriseUnix);
-        w.sunset = time_t(sunsetUnix);
+        w.tNow = int(temp);
+        w.tMax = int(tempMax);
+        w.tMin = int(tempMin);
+        w.srise = time_t(sunriseUnix);
+        w.sset = time_t(sunsetUnix);
     }
     return(w);
+}
+
+
+void dispWeather(WeatherInfo w){
+    INFO_PRINT(w.tNow)
+    INFO_PRINT(w.tMax);
+    INFO_PRINT(w.tMin);
+    printf(SUNRISE_SPRINT, hour(w.srise) , minute(w.srise));
+    printf(SUNSET_SPRINT, hour(w.sset) , minute(w.sset));
 }
