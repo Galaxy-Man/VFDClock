@@ -1,4 +1,5 @@
-//------------------------------ Includes ---------------------------------------
+//--------------------------------- Includes --------------------------------------------------------------.
+
 #include <definitions.h>
 #include <WiFi.h>
 #include <time.h>
@@ -9,21 +10,20 @@
 #include <Secrets.h>
 #include <Strings.h>
 
-//------------------------------- Global vars --------------------------------
+//------------------------------- Global vars -------------------------------------------------------------.
 
 Ticker NTPChecker(NTPUpdate, MILISPERMIN*10, 0, MILLIS);                    //every 10 minutes get the time.
 Ticker WeatherChecker(weatherUpdate, MILISPERMIN*15, 0, MILLIS);         //every 15 minutes get the weather.
 Ticker secondTicker(tickBuzzer, 1000, 0, MILLIS);                        //every second to make buzzer tick.
 Ticker alarmBeeper(alarmBeep, BEEPLENGTH,0,  MILLIS);         //toggles the alarm beep every BEEPLENGTH.
-
-
+Ticker screenDrawer(handleScreen, REFRESHRATE, 0, MILLIS);
 
 time_t currentTime;                                                       //keeps track of the current time.
 weatherInfo currentWeather;                                     //used to keep track of the current weather.
 bool weatherValid = false;   //whether or not the weatherobj is valid (not instantiated and needs updating).
 bool buttonFlag = false;                       //is set on interrupt and cleared when a task picks up on it.
 
-//-------------------------------------------------- Setup ------------------------------------------------.
+//---------------------------------- Setup ----------------------------------------------------------------.
 
 void setup() {
                              //check to see if i need to establish a serial port (not used in release mode).
@@ -71,7 +71,7 @@ void setup() {
     dispBrightness(3);                   //set the brightness to minimum allowed. its already really bright.
   
 }
-//-------------------------- loop -------------------------------------------
+//---------------------------------------------- loop ------------------------------------------------------
 
 void loop() {    
     getDeviceTime(currentTime);
@@ -83,11 +83,17 @@ void loop() {
     }
     
   
-    if(minute(currentTime)%30 < 15){
-        invertDisp(true);
+    if(hour(currentTime)>19 || hour(currentTime)<7){
+        invertDisp(false);
     }
     else{
-        invertDisp(false);
+        invertDisp(true);
+    }
+
+    if(hour(currentTime) == 7 && minute(currentTime) == 50 && second(currentTime) <5 && alarmBeeper.state() != RUNNING){
+        alarmBeeper.start();
+        secondTicker.stop();
+        INFO_PRINT("ALARM");
     }
 
     NTPChecker.update();
@@ -96,19 +102,13 @@ void loop() {
     alarmBeeper.update();
 
     if(buttonFlag){
-          if(alarmBeeper.state() == RUNNING){
-              alarmBeeper.stop();
-              secondTicker.start();
-              INFO_PRINT("Alarm stopped due to button press");
-          }
+        if(alarmBeeper.state() == RUNNING){
+            alarmBeeper.stop();
+            secondTicker.start();
+            INFO_PRINT("Alarm stopped due to button press");
+        }
 
-          else if(alarmBeeper.state() == STOPPED){
-              alarmBeeper.start();
-              secondTicker.pause();
-              INFO_PRINT("Alarm started on button press");
-          }
-
-          buttonFlag = false;
+        buttonFlag = false;
     }
 }
 
@@ -148,7 +148,12 @@ void alarmBeep(){
 
 void buttonInterrupt(){
     DEBUG_PRINT(BUTTON_MSG);
-    buttonFlag = true;
-    delay(150);
+    int start = millis();
+    while(millis() - start < 100){
+        alarmBeeper.update();
+    }
+    if(digitalRead(BUTTONPIN)){
+        buttonFlag = true;
+    }
 }
 

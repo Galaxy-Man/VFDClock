@@ -29,5 +29,6 @@ void alarmBeep();  //called every BEEPLENGTH to toggle the alarm noise
 
 #define BEEPFREQ 4000      //Hz
 #define BEEPLENGTH 200    //miliseconds
+#define REFRESHRATE 500   //miliseconds
 
 #endif
