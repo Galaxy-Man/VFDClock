@@ -9,6 +9,7 @@
 #include <Weatherman.h>
 #include <Secrets.h>
 #include <Strings.h>
+#include <blueMan.h>
 
 //------------------------------- Global vars -------------------------------------------------------------.
 
@@ -16,7 +17,7 @@ Ticker NTPChecker(NTPUpdate, MILISPERMIN*10, 0, MILLIS);                    //ev
 Ticker WeatherChecker(weatherUpdate, MILISPERMIN*15, 0, MILLIS);         //every 15 minutes get the weather.
 Ticker secondTicker(tickBuzzer, 1000, 0, MILLIS);                        //every second to make buzzer tick.
 Ticker alarmBeeper(alarmBeep, BEEPLENGTH,0,  MILLIS);         //toggles the alarm beep every BEEPLENGTH.
-Ticker screenDrawer(handleScreen, REFRESHRATE, 0, MILLIS);
+Ticker screenDrawer(handleScreen, REFRESHRATE, 0, MILLIS);      //called to refresh the screen
 
 time_t currentTime;                                                       //keeps track of the current time.
 weatherInfo currentWeather;                                     //used to keep track of the current weather.
@@ -68,28 +69,14 @@ void setup() {
     NTPChecker.start();                                    //setup a ticker that keeps the NTP synchronised.
     WeatherChecker.start();                            //setup a ticker that keeps the Weather synchronised.
     secondTicker.start();                                           //ticks once a second to make the noise.
+    screenDrawer.start();                                                           //handle screen drawing.
     dispBrightness(3);                   //set the brightness to minimum allowed. its already really bright.
   
 }
 //---------------------------------------------- loop ------------------------------------------------------
 
 void loop() {    
-    getDeviceTime(currentTime);
-    if(weatherValid){
-        displayTime(currentTime, currentWeather);
-    }
-    else{
-        displayTime(currentTime);
-    }
-    
   
-    if(hour(currentTime)>19 || hour(currentTime)<7){
-        invertDisp(false);
-    }
-    else{
-        invertDisp(true);
-    }
-
     if(hour(currentTime) == 7 && minute(currentTime) == 50 && second(currentTime) <5 && alarmBeeper.state() != RUNNING){
         alarmBeeper.start();
         secondTicker.stop();
@@ -157,3 +144,20 @@ void buttonInterrupt(){
     }
 }
 
+
+void handleScreen(){
+    getDeviceTime(currentTime);
+        if(weatherValid){
+            displayTime(currentTime, currentWeather);
+        }
+        else{
+            displayTime(currentTime);
+        }
+    
+        if(hour(currentTime)>19 || hour(currentTime)<7){
+            invertDisp(false);
+        }
+        else{
+            invertDisp(true);
+        }
+}

@@ -20,6 +20,7 @@ void weatherUpdate();   //declared towards the top of the file.
 void buttonInterrupt(); //handles button pressing
 void tickBuzzer(); //ticks the buzzer like a clock
 void alarmBeep();  //called every BEEPLENGTH to toggle the alarm noise
+void handleScreen();  //called to refresh the screen
 
 
 
