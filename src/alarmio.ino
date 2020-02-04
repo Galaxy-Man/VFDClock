@@ -1,4 +1,5 @@
-//------------------------------ Includes ---------------------------------------
+//--------------------------------- Includes --------------------------------------------------------------.
+
 #include <definitions.h>
 #include <WiFi.h>
 #include <time.h>
@@ -9,24 +10,33 @@
 #include <Secrets.h>
 #include <Strings.h>
 
-//------------------------------- Global vars --------------------------------
+//------------------------------- Global vars -------------------------------------------------------------.
 
-Ticker NTPChecker(NTPUpdate, MILISPERMIN*10, MILLIS);  //every 10 minutes get the time
-Ticker WeatherChecker(weatherUpdate, MILISPERMIN*15, MILLIS); //every 15 minutes get the weather
+Ticker NTPChecker(NTPUpdate, MILISPERMIN*10, 0, MILLIS);                    //every 10 minutes get the time.
+Ticker WeatherChecker(weatherUpdate, MILISPERMIN*15, 0, MILLIS);         //every 15 minutes get the weather.
+Ticker secondTicker(tickBuzzer, 1000, 0, MILLIS);                        //every second to make buzzer tick.
+Ticker alarmBeeper(alarmBeep, BEEPLENGTH,0,  MILLIS);         //toggles the alarm beep every BEEPLENGTH.
+Ticker screenDrawer(handleScreen, REFRESHRATE, 0, MILLIS);
 
-time_t currentTime;          //keeps track of the current weather
-weatherInfo currentWeather;  //used to keep track of the current weather
-bool weatherValid = false;   //whether or not the weatherobject is valid (it will instantiate to noise and needs updating)
+time_t currentTime;                                                       //keeps track of the current time.
+weatherInfo currentWeather;                                     //used to keep track of the current weather.
+bool weatherValid = false;   //whether or not the weatherobj is valid (not instantiated and needs updating).
+bool buttonFlag = false;                       //is set on interrupt and cleared when a task picks up on it.
 
-//------------------------------- Setup ------------------------------------------\
+//---------------------------------- Setup ----------------------------------------------------------------.
 
 void setup() {
-    //check to see if i need to establish a serial port (not used in release mode)
+                             //check to see if i need to establish a serial port (not used in release mode).
     #ifdef DEBUGMODE 
     Serial.begin(115200);
     #endif
+
+    pinMode(BUTTONPIN, INPUT_PULLDOWN);                                     //button pin setup to pull down.
+    attachInterrupt(BUTTONPIN, buttonInterrupt, RISING);       //setup a callback for when the button rises.
+    ledcSetup(2, BEEPFREQ, 8);                                            //set ch 2 to run at BEEPFREQ.
     
-    WiFi.begin(ssid, password);     //begin setting up the wifi connection using data from secrets.h
+    
+    WiFi.begin(ssid, password);            //begin setting up the wifi connection using data from secrets.h.
     int WifiStartTime = millis();                          //get time before we start measuring the timeout.
 
     while (WiFi.status() != WL_CONNECTED                  //loop around and wait to get online for either a.
@@ -45,22 +55,23 @@ void setup() {
     initDisp();  //setup the display. no return since we don't actually have an ack signal from the display.
 
     while(!getNTPTime(currentTime)){                   //wait until we can get the time from the NTP server.
-        for(int i = 5; i>0; i++){                    //count down from 5 and display a message every second.
-            displayUnableToConnectMsg(i);
+        for(int i = 5; i>0; i--){                    //count down from 5 and display a message every second.
+            displayUnableToConnectMsg(i);           
             delay(1000);
         }
     }
 
-    if(getNewWeather(currentWeather)){      //if we can get the weather straight away, great,
-        weatherValid = true;                // do it and set the validity flag.
+    if(getNewWeather(currentWeather)){                     //if we can get the weather straight away, great.
+        weatherValid = true;                // do it and set the validity flag(TODO: Neater way to do this).
     }
 
-    NTPChecker.start();                     //setup a ticker that keeps the NTP synchronised.
-    WeatherChecker.start();                 //setup a ticker that keeps the Weather synchronised.
-    dispBrightness(3);                      //set the brightness to minimum allowed. its already really bright
+    NTPChecker.start();                                    //setup a ticker that keeps the NTP synchronised.
+    WeatherChecker.start();                            //setup a ticker that keeps the Weather synchronised.
+    secondTicker.start();                                           //ticks once a second to make the noise.
+    dispBrightness(3);                   //set the brightness to minimum allowed. its already really bright.
+  
 }
-
-//-------------------------- loop -------------------------------------------
+//---------------------------------------------- loop ------------------------------------------------------
 
 void loop() {    
     getDeviceTime(currentTime);
@@ -72,22 +83,77 @@ void loop() {
     }
     
   
-    if(minute(currentTime)%30 < 15){
-        invertDisp(true);
+    if(hour(currentTime)>19 || hour(currentTime)<7){
+        invertDisp(false);
     }
     else{
-        invertDisp(false);
+        invertDisp(true);
+    }
+
+    if(hour(currentTime) == 7 && minute(currentTime) == 50 && second(currentTime) <5 && alarmBeeper.state() != RUNNING){
+        alarmBeeper.start();
+        secondTicker.stop();
+        INFO_PRINT("ALARM");
     }
 
     NTPChecker.update();
     WeatherChecker.update();
-    delay(200);
+    secondTicker.update();
+    alarmBeeper.update();
+
+    if(buttonFlag){
+        if(alarmBeeper.state() == RUNNING){
+            alarmBeeper.stop();
+            secondTicker.start();
+            INFO_PRINT("Alarm stopped due to button press");
+        }
+
+        buttonFlag = false;
+    }
 }
+
+
+void tickBuzzer(){
+    ledcDetachPin(BUZZERPIN);
+    pinMode(BUZZERPIN, OUTPUT);
+    digitalWrite(BUZZERPIN, HIGH);
+    delayMicroseconds(6);
+    digitalWrite(BUZZERPIN, LOW);
+}
+
 
 void NTPUpdate(){
     getNTPTime(currentTime);
 }
 
+
 void weatherUpdate(){
     getNewWeather(currentWeather);
 }
+
+
+void alarmBeep(){
+    ledcAttachPin(BUZZERPIN, 2);
+    static bool isBeeping = false;
+    if(isBeeping){
+        isBeeping = false;
+        ledcWrite(2, 0);
+    }
+    else{
+        isBeeping = true;
+        ledcWrite(2,128);
+    }     
+}
+
+
+void buttonInterrupt(){
+    DEBUG_PRINT(BUTTON_MSG);
+    int start = millis();
+    while(millis() - start < 100){
+        alarmBeeper.update();
+    }
+    if(digitalRead(BUTTONPIN)){
+        buttonFlag = true;
+    }
+}
+
