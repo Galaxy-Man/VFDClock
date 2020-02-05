@@ -21,7 +21,7 @@ Ticker screenDrawer(handleScreen, REFRESHRATE, 0, MILLIS);
 time_t currentTime;                                                       //keeps track of the current time.
 weatherInfo currentWeather;                                     //used to keep track of the current weather.
 bool weatherValid = false;   //whether or not the weatherobj is valid (not instantiated and needs updating).
-bool buttonFlag = false;                       //is set on interrupt and cleared when a task picks up on it.
+volatile bool buttonFlag = false;                       //is set on interrupt and cleared when a task picks up on it.
 
 //---------------------------------- Setup ----------------------------------------------------------------.
 
@@ -75,85 +75,89 @@ void setup() {
 
 void loop() {                                 //main loop. my aim in this code is to minimise this function. 
     getDeviceTime(currentTime);       //get the local time from the RTC. This will eventually need handling.
-    if(weatherValid){
-        displayTime(currentTime, currentWeather);
+    if(weatherValid){                             //if the weather was collected successfully at least once.
+        displayTime(currentTime, currentWeather);                              //draw both time and weather. 
     }
     else{
-        displayTime(currentTime);
+        displayTime(currentTime);  //if the weather has not been confirmed at least once, just display time.
     }
     
   
-    if(hour(currentTime)>19 || hour(currentTime)<7){
-        invertDisp(false);
-    }
+    if(hour(currentTime)>19 || hour(currentTime)<7){                  //if the hour is between 7PM and 7AM.
+        invertDisp(false);                                                        //dont invert the screen.
+    }                 //NB this is done to prevent burn-in by inverting the static elements every 12 hours.
     else{
-        invertDisp(true);
+        invertDisp(true);                       //if the hour is 7AM to 7PM, then set the display inverted.
+    }          //this is done so the higher brightness mode happens during the day, and lower at nighttime. 
+
+    if(hour(currentTime) == 7 && minute(currentTime) == 50 &&    /*broken line.*/
+       second(currentTime) <5 && alarmBeeper.state() != RUNNING){      //this condition triggers the alarm.
+        alarmBeeper.start();                                   //start the alarmBeeper (this beeps loudly).
+        secondTicker.stop();           //stop the secondTicker temporarily as it interferes with the alarm.
+        INFO_PRINT("ALARM");                                                                  //Info print.
     }
 
-    if(hour(currentTime) == 7 && minute(currentTime) == 50 && second(currentTime) <5 && alarmBeeper.state() != RUNNING){
-        alarmBeeper.start();
-        secondTicker.stop();
-        INFO_PRINT("ALARM");
-    }
-
-    NTPChecker.update();
+    NTPChecker.update();        //updates all the Tickers.
     WeatherChecker.update();
     secondTicker.update();
     alarmBeeper.update();
 
-    if(buttonFlag){
-        if(alarmBeeper.state() == RUNNING){
-            alarmBeeper.stop();
-            secondTicker.start();
-            INFO_PRINT("Alarm stopped due to button press");
+
+    if(buttonFlag){              //if the button has recently been pressed, handle it and disable the flag.
+            if(alarmBeeper.state() == RUNNING){  //if the alarm is running (this logic might get reworked).
+            alarmBeeper.stop();                                                    //stop the alarm beeper.
+            secondTicker.start();                                        //start the second ticker as well.
+            INFO_PRINT("Alarm stopped due to button press");                                  //info print.
         }
 
-        buttonFlag = false;
+        buttonFlag = false;                                                       //finally reset the flag.
     }
 }
 
 
-void tickBuzzer(){
-    ledcDetachPin(BUZZERPIN);
-    pinMode(BUZZERPIN, OUTPUT);
-    digitalWrite(BUZZERPIN, HIGH);
-    delayMicroseconds(6);
-    digitalWrite(BUZZERPIN, LOW);
+void tickBuzzer(){                            //this simply makes the buzzer emit a quiet tick noise once.
+    ledcDetachPin(BUZZERPIN);             //this is needed since we're not using PWM we have to detach it.
+    pinMode(BUZZERPIN, OUTPUT);                           //once that's done, set the buzzer as an output.
+    digitalWrite(BUZZERPIN, HIGH);                                              //set the buzzer out high.
+    delayMicroseconds(6);                                                             //short short delay.
+    digitalWrite(BUZZERPIN, LOW);                                                //set the buzzer out low.
 }
 
 
-void NTPUpdate(){
-    getNTPTime(currentTime);
+void NTPUpdate(){             //this calls the NTP service. done in a wrapper function to enable checking.
+    getNTPTime(currentTime);                                     //get the NTP Time. TODO: error handling.
 }
 
 
-void weatherUpdate(){
-    getNewWeather(currentWeather);
+void weatherUpdate(){             //this calls the weather service. again in a wrapper for error handling.
+    getNewWeather(currentWeather);                                     //get weather TODO: error handling.
 }
 
 
-void alarmBeep(){
-    ledcAttachPin(BUZZERPIN, 2);
-    static bool isBeeping = false;
-    if(isBeeping){
-        isBeeping = false;
-        ledcWrite(2, 0);
+void alarmBeep(){    //this function uses a static var. every time it's called it sets the tone on or off.
+    ledcAttachPin(BUZZERPIN, 2);               //need to reattach pin to PWM incase seconds has run since.
+    static bool isBeeping = false;                  //static var to track if the alarm is in a tone or no.
+    if(isBeeping){                                                                     //if we're beeping.
+        isBeeping = false;                                                              //now we won't be. 
+        ledcWrite(2, 0);                                                        //then set the buzzer off.
     }
     else{
-        isBeeping = true;
-        ledcWrite(2,128);
+        isBeeping = true;                         //if we're currently not beeping, we will start beeping.
+        ledcWrite(2,128);                          //set the duty cycle to half (needed for a 50/50 duty).
     }     
 }
 
 
-void buttonInterrupt(){
-    DEBUG_PRINT(BUTTON_MSG);
-    int start = millis();
-    while(millis() - start < 100){
-        alarmBeeper.update();
+void buttonInterrupt(){    //irupt handler for the button. Needs reworking to fix debounce non-blockingly.
+    if(buttonFlag){
+        return;
     }
-    if(digitalRead(BUTTONPIN)){
+    DEBUG_PRINT(BUTTON_MSG);                                                                //debug print.
+    int start = millis();                                   //set the start time for the debounce counter.
+    while(millis() - start < 100){        //temporary debounce logic just waits 100ms and refreshes alarm.
+        alarmBeeper.update();                                                    //refreshing alarm timer.
+    }
+    if(digitalRead(BUTTONPIN)){                      //if the button pin is still held, then set the flag.
         buttonFlag = true;
-    }
+    }           //annoyingly, you can't delay for very long, it timeouts a watchdog somewhere in hardware.
 }
-
