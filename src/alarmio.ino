@@ -73,8 +73,8 @@ void setup() {
 }
 //---------------------------------------------- loop ------------------------------------------------------
 
-void loop() {    
-    getDeviceTime(currentTime);
+void loop() {                                 //main loop. my aim in this code is to minimise this function. 
+    getDeviceTime(currentTime);       //get the local time from the RTC. This will eventually need handling.
     if(weatherValid){
         displayTime(currentTime, currentWeather);
     }
