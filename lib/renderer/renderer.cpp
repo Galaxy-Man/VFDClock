@@ -21,7 +21,7 @@ void initDisp(){
 
 void displayTime(time_t &t){
     d.clearBuffer();
-    char timeMsg[15];
+    char timeMsg[10];
 
     d.setFont(&RobotoMono_Bold17pt7b);
     d.setCursor(3,24);
@@ -43,57 +43,34 @@ void displayTime(time_t &t){
 }
 
 void displayTime(time_t &t, weatherInfo &w){
-    d.clearBuffer();
-    char timeMsg[15];
-    char wBuffer[20];
-    
-    d.setFont(&RobotoMono_Bold17pt7b);
-    d.setCursor(3,24);
-    sprintf(timeMsg, "%02d", hour(t));
-    d.print(timeMsg);
-    
-    d.setCursor(3,51);
-    sprintf(timeMsg, "%02d", minute(t));
-    d.print(timeMsg);
-    
-    d.setCursor(3,62);
-    d.setFont(&RobotoMono_Light6pt7b);
-    sprintf(timeMsg, "%02d/%02d/%02d", day(t), month(t), year(t)-2000);
-    d.print(timeMsg);
-  
-    d.fillRect(0, 61 - second(t), 2, second(t), 1);
-
+    displayTime(time_t &t);
     d.setFont(&RobotoMono_Light6pt7b);
 
 
-
-
-
-    d.drawBitmap(76, 1, temp, 12, 12, 1);
-    sprintf(wBuffer, "%02dC", w.tNow);
+    d.drawBitmap(76, 1, tempurature, 12, 12, 1);
+    sprintf(charBuff, "%02dC", w.tNow);
     d.setCursor(90,11);
-    d.println(wBuffer);
-
+    d.println(charBuffer);
 
     d.drawBitmap(76, 14, tmax, 12, 12, 1);
     d.setCursor(90, 24);
-    sprintf(wBuffer, "%02dC", w.tMax);
-    d.println(wBuffer);
+    sprintf(charBuffer, "%02dC", w.tMax);
+    d.println(charBuffer);
 
     d.drawBitmap(76, 27, tmin, 12, 12, 1);
     d.setCursor(90, 37);
-    sprintf(wBuffer, "%02dC", w.tMin);
-    d.println(wBuffer);
+    sprintf(charBuffer, "%02dC", w.tMin);
+    d.println(charBuffer);
 
     d.drawBitmap(76, 40, sunrise, 12, 12, 1);
     d.setCursor(90, 50);
-    sprintf(wBuffer, "%02d:%02d", hour(w.srise), minute(w.srise));
-    d.println(wBuffer);
+    sprintf(charBuffer, "%02d:%02d", hour(w.srise), minute(w.srise));
+    d.println(charBuffer);
 
     d.drawBitmap(76, 53, sunset, 12, 12, 1);
     d.setCursor(90, 62);
-    sprintf(wBuffer, "%02d:%02d", hour(w.sset), minute(w.sset));
-    d.println(wBuffer);
+    sprintf(charBuffer, "%02d:%02d", hour(w.sset), minute(w.sset));
+    d.println(charBuffer);
 
     d.blitWithoutReading();
 }
@@ -135,7 +112,6 @@ void dispBrightness(int v){
 }
 
 void invertDisp(bool i){
-    if(i){d.inverted = true;}
-    else{d.inverted = false;}
+    d.inverted = i;
 }
 

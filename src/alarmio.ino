@@ -21,7 +21,7 @@ Ticker screenDrawer(handleScreen, REFRESHRATE, 0, MILLIS);
 time_t currentTime;                                                       //keeps track of the current time.
 weatherInfo currentWeather;                                     //used to keep track of the current weather.
 bool weatherValid = false;   //whether or not the weatherobj is valid (not instantiated and needs updating).
-volatile bool buttonFlag = false;                       //is set on interrupt and cleared when a task picks up on it.
+volatile bool buttonFlag = false;              //is set on interrupt and cleared when a task picks up on it.
 
 //---------------------------------- Setup ----------------------------------------------------------------.
 

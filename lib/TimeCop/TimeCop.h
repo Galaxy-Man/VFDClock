@@ -19,6 +19,8 @@
 #define UDPPORT 8888
 #define NTPTIMEOUT 1000
 
+#define MAGICNUMBER 2208988800U
+
 
 void sendNTPpacket(IPAddress &address);
 
